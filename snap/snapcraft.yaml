@@ -12,9 +12,6 @@ adopt-info: webapp
 apps:
   linkding:
     command: bin/run.sh
-      #environment:
-      # VIRTUAL_ENV: $SNAP/venv
-      # PATH: $SNAP/venv/bin:$PATH
   listener:
     command: bin/run.sh
     daemon: simple
@@ -25,8 +22,6 @@ apps:
       - network
       - network-bind
     environment:
-      # VIRTUAL_ENV: $SNAP/venv
-      # PATH: $SNAP/venv/bin:$PATH
       LD_HOST_DATA_DIR: $SNAP_COMMON/data
 
 parts:
@@ -65,7 +60,6 @@ parts:
     source-type: git
     source: .
     build-packages:
-      # - python3-venv
       - python3-pip
       - git
     stage-packages:
@@ -97,14 +91,9 @@ parts:
       cp bootstrap.sh $CRAFT_PART_INSTALL
       cp -r bookmarks/static $CRAFT_PART_INSTALL
       # backend dependencies
-      # python3 -m venv --upgrade-deps --copies venv
-      # . venv/bin/activate
-      # python3 -m pip install -r requirements.txt -r requirements.dev.txt
-      # backend
       python manage.py compilescss
       python manage.py collectstatic --ignore=*.scss
       python manage.py compilescss --delete-files
-      # cp -r venv $CRAFT_PART_INSTALL
       cp uwsgi.ini $CRAFT_PART_INSTALL
       cp manage.py $CRAFT_PART_INSTALL
       cp -r siteroot $CRAFT_PART_INSTALL
