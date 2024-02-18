@@ -1,0 +1,115 @@
+name: linkding
+base: core22
+version: '0.0' # gets rewritten with adopt-info
+summary: Self-hosted bookmark manager
+description:
+  linkding is a bookmark manager that you can host yourself. It's designed be to be minimal, fast, and easy to set up.
+
+grade: stable
+confinement: strict
+adopt-info: webapp
+
+apps:
+  linkding:
+    command: bin/run.sh
+      #environment:
+      # VIRTUAL_ENV: $SNAP/venv
+      # PATH: $SNAP/venv/bin:$PATH
+  listener:
+    command: bin/run.sh
+    daemon: simple
+    install-mode: enable
+    restart-condition: on-failure
+    plugs:
+      - home
+      - network
+      - network-bind
+    environment:
+      # VIRTUAL_ENV: $SNAP/venv
+      # PATH: $SNAP/venv/bin:$PATH
+      LD_HOST_DATA_DIR: $SNAP_COMMON/data
+
+parts:
+  launcher:
+    plugin: dump
+    source-type: local
+    source: ./snap/local
+    organize:
+      run.sh: ./bin/run.sh
+  sqlite-icu:
+    after: [webapp]
+    plugin: nil
+    source-type: local
+    build-packages:
+      - build-essential
+      - libicu-dev
+      - wget
+      - unzip
+      - pkg-config
+    stage-packages:
+      - libicu70
+    build-environment:
+      - SQLITE_RELEASE_YEAR: 2023
+      - SQLITE_RELEASE: 3430000
+    override-build: |
+      craftctl default
+      wget https://www.sqlite.org/${SQLITE_RELEASE_YEAR}/sqlite-amalgamation-${SQLITE_RELEASE}.zip
+      unzip sqlite-amalgamation-${SQLITE_RELEASE}.zip
+      cp sqlite-amalgamation-${SQLITE_RELEASE}/sqlite3.h ./sqlite3.h
+      cp sqlite-amalgamation-${SQLITE_RELEASE}/sqlite3ext.h ./sqlite3ext.h
+      wget https://www.sqlite.org/src/raw/ext/icu/icu.c?name=91c021c7e3e8bbba286960810fa303295c622e323567b2e6def4ce58e4466e60 -O icu.c
+      gcc -fPIC -shared icu.c `pkg-config --libs --cflags icu-uc icu-io` -o libicu.so
+      cp libicu.so $CRAFT_PART_INSTALL
+  webapp:
+    plugin: python
+    source-type: git
+    source: .
+    build-packages:
+      # - python3-venv
+      - python3-pip
+      - git
+    stage-packages:
+      - python3
+      - libpython3.10
+      - supervisor
+    stage-snaps:
+      - node/20/stable
+    override-pull: |
+      craftctl default
+      sed -i '/playwright/d' requirements.dev.txt
+      sed -i 's/www-data/root/g' uwsgi.ini
+      sed -i 's/www-data/root/g' supervisord.conf
+      chmod ugo+x bootstrap.sh
+
+      last_committed_tag="$(git describe --tags --abbrev=0)"
+      last_committed_tag_ver="$(echo ${last_committed_tag} | sed 's/v//')"
+      version="$(git describe --tags | sed 's/v//')"
+      craftctl set version=$version
+      echo $version > version.txt
+    python-requirements:
+      - requirements.txt
+      - requirements.dev.txt
+    override-build: |
+      craftctl default
+      # frontend
+      npm install
+      npm run build
+      cp bootstrap.sh $CRAFT_PART_INSTALL
+      cp -r bookmarks/static $CRAFT_PART_INSTALL
+      # backend dependencies
+      # python3 -m venv --upgrade-deps --copies venv
+      # . venv/bin/activate
+      # python3 -m pip install -r requirements.txt -r requirements.dev.txt
+      # backend
+      python manage.py compilescss
+      python manage.py collectstatic --ignore=*.scss
+      python manage.py compilescss --delete-files
+      # cp -r venv $CRAFT_PART_INSTALL
+      cp uwsgi.ini $CRAFT_PART_INSTALL
+      cp manage.py $CRAFT_PART_INSTALL
+      cp -r siteroot $CRAFT_PART_INSTALL
+      cp -r bookmarks $CRAFT_PART_INSTALL
+      cp version.txt $CRAFT_PART_INSTALL
+layout:
+  $SNAP/data:
+    symlink: $SNAP_COMMON/data

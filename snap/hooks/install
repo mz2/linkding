@@ -1,0 +1,8 @@
+#!/bin/bash
+set -e
+
+snapctl set host=127.0.0.1
+snapctl set port=9090
+
+ln -s $SNAP/version.txt $SNAP_COMMON/version.txt
+
