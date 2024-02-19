@@ -1,0 +1,7 @@
+#!/bin/bash
+set -e
+
+export BASE_DIR=$SNAP_COMMON
+
+echo "Running migrations"
+python3 $SNAP/manage.py migrate

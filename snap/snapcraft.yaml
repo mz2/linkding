@@ -12,10 +12,17 @@ adopt-info: webapp
 apps:
   linkding:
     command: run.sh
+    plugs:
+      - home
+      - network
+      - network-bind
+    environment:
+      LD_HOST_DATA_DIR: $SNAP_COMMON/data
+      BASE_DIR: $SNAP_COMMON/
   listener:
     command: run.sh
     daemon: simple
-    install-mode: enable
+    install-mode: disable
     restart-condition: on-failure
     plugs:
       - home
@@ -24,7 +31,6 @@ apps:
     environment:
       LD_HOST_DATA_DIR: $SNAP_COMMON/data
       BASE_DIR: $SNAP_COMMON/
-
 parts:
   launcher:
     plugin: dump
@@ -73,7 +79,7 @@ parts:
       - libpcre3
       - libpcre3-dev
     build-snaps:
-      - node/20/stable
+      - node/21/stable
     override-pull: |
       craftctl default
       sed -i '/playwright/d' requirements.dev.txt

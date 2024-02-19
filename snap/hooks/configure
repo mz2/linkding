@@ -1,4 +1,19 @@
 #!/bin/bash
 
 snapctl stop "$SNAP_INSTANCE_NAME"
+
+export LD_SUPERUSER_NAME=$(snapctl get superuser-name)
+export LD_SUPERUSER_PASSWORD=$(snapctl get superuser-password)
+export BASE_DIR=$SNAP_COMMON
+
+if [ -z "$LD_SUPERUSER_NAME" ]; then
+    echo "No superuser name provided -> skipping creating them."
+else
+    echo "Ensuring superuser exists"
+    pushd $SNAP_COMMON
+    python3 $SNAP/manage.py create_initial_superuser
+    popd
+fi
+
+echo "Starting service up again..."
 snapctl start "$SNAP_INSTANCE_NAME"

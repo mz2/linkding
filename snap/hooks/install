@@ -3,8 +3,12 @@ set -e
 
 snapctl set host=127.0.0.1
 snapctl set port=9090
-snapctl set superuser-name=''
+snapctl set superuser-name='admin'
+snapctl set superuser-password=$(head -c 12 /dev/random | base64)
 snapctl set disable-background-tasks=false
+
+mkdir -p $SNAP_COMMON/data
+mkdir -p $SNAP_COMMON/data/favicons
 
 # FIXME: Assuming /snap/... as a fixed installation path is probably a bad idea.
 # This would all be resolved by a configurable BASE_DIR in the upstream project.
@@ -13,3 +17,14 @@ ln -s /snap/$SNAP_INSTANCE_NAME/current/supervisord.conf $SNAP_COMMON/supervisor
 ln -s /snap/$SNAP_INSTANCE_NAME/current/bookmarks $SNAP_COMMON/bookmarks
 ln -s /snap/$SNAP_INSTANCE_NAME/current/static $SNAP_COMMON/static
 ln -s /snap/$SNAP_INSTANCE_NAME/current/siteroot $SNAP_COMMON/siteroot
+
+export BASE_DIR=$SNAP_COMMON
+
+pushd $SNAP_COMMON
+echo "Generating secret key"
+python3 $SNAP/manage.py generate_secret_key
+
+echo "Enabling WAL"
+python3 $SNAP/manage.py enable_wal
+popd
+
