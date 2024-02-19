@@ -25,8 +25,11 @@ python3 $SNAP/manage.py enable_wal
 echo "Creating initial superuser"
 python3 $SNAP/manage.py create_initial_superuser
 
-if [ "$LD_DISABLE_BACKGROUND_TASKS" != "True" ]; then
-  supervisord -c supervisord.conf
+if [ -z "$LD_DISABLE_BACKGROUND_TASKS" ] || [ "$(echo "$LD_DISABLE_BACKGROUND_TASKS" | tr '[:upper:]' '[:lower:]')" != "true" ]; then
+    echo "Enabling supervisord"
+    supervisord -c supervisord.conf
+else
+    echo "Background tasks are disabled"
 fi
 
 # Start uwsgi server

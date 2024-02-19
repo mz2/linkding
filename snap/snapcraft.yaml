@@ -64,10 +64,15 @@ parts:
     build-packages:
       - python3-pip
       - git
+      - libcrypt-dev
+      - libcrypt1
+      - libtirpc3
     stage-packages:
       - python3
       - libpython3.10
-    stage-snaps:
+      - libpcre3
+      - libpcre3-dev
+    build-snaps:
       - node/20/stable
     override-pull: |
       craftctl default
@@ -88,19 +93,21 @@ parts:
       npm install
       npm run build
       cp bootstrap.sh $CRAFT_PART_INSTALL
-      cp -r bookmarks/static $CRAFT_PART_INSTALL
       # backend dependencies
+      mkdir -p data/favicons
+      mkdir -p bookmarks/styles
       python manage.py compilescss
       python manage.py collectstatic --ignore=*.scss
       python manage.py compilescss --delete-files
+      cp -r static $CRAFT_PART_INSTALL
 
       # FIXME: hack to replace BASE_DIR _after_ the above build steps (BASE_DIR configurability in upstream linkding would resolve)
       # (a cleaner solution would be a snap specific settings module)
       sed -i "s|BASE_DIR = .*|BASE_DIR = os.environ['BASE_DIR']|" siteroot/settings/base.py
-
       cp uwsgi.ini $CRAFT_PART_INSTALL
       cp manage.py $CRAFT_PART_INSTALL
       cp -r siteroot $CRAFT_PART_INSTALL
       cp -r bookmarks $CRAFT_PART_INSTALL
       cp version.txt $CRAFT_PART_INSTALL
+      cp supervisord.conf $CRAFT_PART_INSTALL
 
