@@ -1,21 +1,33 @@
 #!/usr/bin/env bash
 
-PORT="${PORT:-9090}"
-HOST="${HOST:-127.0.0.1}"
+PORT=$(snapctl get port)
+HOST_NAME=$(snapctl get host)
 
-# . $SNAP/venv/bin/activate
+SUPERUSER_NAME=$(snapctl get superuser-name)
+if [ -n "$SUPERUSER_NAME" ]; then
+  export LD_SUPERUSER_NAME=$SUPERUSER_NAME
+fi
 
 mkdir -p $SNAP_COMMON/data
 mkdir -p $SNAP_COMMON/data/favicons
 
-python $SNAP/manage.py generate_secret_key
-python $SNAP/manage.py migrate
-python $SNAP/manage.py enable_wal
-python $SNAP/manage.py create_initial_superuser
+cd $SNAP_COMMON
+
+echo "Generating secret key"
+python3 $SNAP/manage.py generate_secret_key
+
+echo "Running migrations"
+python3 $SNAP/manage.py migrate
+
+echo "Enabling WAL"
+python3 $SNAP/manage.py enable_wal
+
+echo "Creating initial superuser"
+python3 $SNAP/manage.py create_initial_superuser
 
 if [ "$LD_DISABLE_BACKGROUND_TASKS" != "True" ]; then
   supervisord -c supervisord.conf
 fi
 
 # Start uwsgi server
-exec uwsgi --http $HOST:$PORT $SNAP/uwsgi.ini
+exec uwsgi --http $HOST_NAME:$PORT $SNAP/uwsgi.ini

@@ -11,9 +11,9 @@ adopt-info: webapp
 
 apps:
   linkding:
-    command: bin/run.sh
+    command: run.sh
   listener:
-    command: bin/run.sh
+    command: run.sh
     daemon: simple
     install-mode: enable
     restart-condition: on-failure
@@ -23,14 +23,13 @@ apps:
       - network-bind
     environment:
       LD_HOST_DATA_DIR: $SNAP_COMMON/data
+      BASE_DIR: $SNAP_COMMON/
 
 parts:
   launcher:
     plugin: dump
     source-type: local
     source: ./snap/local
-    organize:
-      run.sh: ./bin/run.sh
   sqlite-icu:
     after: [webapp]
     plugin: nil
@@ -57,6 +56,9 @@ parts:
       cp libicu.so $CRAFT_PART_INSTALL
   webapp:
     plugin: python
+    python-requirements:
+      - requirements.txt
+      - requirements.dev.txt
     source-type: git
     source: .
     build-packages:
@@ -65,7 +67,6 @@ parts:
     stage-packages:
       - python3
       - libpython3.10
-      - supervisor
     stage-snaps:
       - node/20/stable
     override-pull: |
@@ -73,6 +74,7 @@ parts:
       sed -i '/playwright/d' requirements.dev.txt
       sed -i 's/www-data/root/g' uwsgi.ini
       sed -i 's/www-data/root/g' supervisord.conf
+      
       chmod ugo+x bootstrap.sh
 
       last_committed_tag="$(git describe --tags --abbrev=0)"
@@ -80,9 +82,6 @@ parts:
       version="$(git describe --tags | sed 's/v//')"
       craftctl set version=$version
       echo $version > version.txt
-    python-requirements:
-      - requirements.txt
-      - requirements.dev.txt
     override-build: |
       craftctl default
       # frontend
@@ -94,11 +93,14 @@ parts:
       python manage.py compilescss
       python manage.py collectstatic --ignore=*.scss
       python manage.py compilescss --delete-files
+
+      # FIXME: hack to replace BASE_DIR _after_ the above build steps (BASE_DIR configurability in upstream linkding would resolve)
+      # (a cleaner solution would be a snap specific settings module)
+      sed -i "s|BASE_DIR = .*|BASE_DIR = os.environ['BASE_DIR']|" siteroot/settings/base.py
+
       cp uwsgi.ini $CRAFT_PART_INSTALL
       cp manage.py $CRAFT_PART_INSTALL
       cp -r siteroot $CRAFT_PART_INSTALL
       cp -r bookmarks $CRAFT_PART_INSTALL
       cp version.txt $CRAFT_PART_INSTALL
-layout:
-  $SNAP/data:
-    symlink: $SNAP_COMMON/data
+

@@ -3,6 +3,11 @@ set -e
 
 snapctl set host=127.0.0.1
 snapctl set port=9090
+snapctl set superuser-name=''
 
-ln -s $SNAP/version.txt $SNAP_COMMON/version.txt
-
+# FIXME: Assuming /snap/... as a fixed installation path is probably a bad idea.
+# This would all be resolved by a configurable BASE_DIR in the upstream project.
+ln -s /snap/$SNAP_INSTANCE_NAME/current/version.txt $SNAP_COMMON/version.txt
+ln -s /snap/$SNAP_INSTANCE_NAME/current/bookmarks $SNAP_COMMON/bookmarks
+ln -s /snap/$SNAP_INSTANCE_NAME/current/static $SNAP_COMMON/static
+ln -s /snap/$SNAP_INSTANCE_NAME/current/siteroot $SNAP_COMMON/siteroot
