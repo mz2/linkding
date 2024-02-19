@@ -6,9 +6,13 @@ from typing import Optional
 from dateutil.relativedelta import relativedelta
 from django.template.defaultfilters import pluralize
 from django.utils import timezone, formats
+import os
+
+version_file_path = os.path.join(os.getcwd(), "version.txt")
+print(f"Expected version.txt path: {version_file_path}")
 
 try:
-    with open("version.txt", "r") as f:
+    with open(version_file_path, "r") as f:
         app_version = f.read().strip("\n")
 except Exception as exc:
     logging.exception(exc)
